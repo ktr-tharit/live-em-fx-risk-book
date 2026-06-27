@@ -1,0 +1,28 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Generated outputs (regenerate anytime by re-running the scripts) ---
+# Keep fx_rates.csv tracked - it's the running history that's part of the
+# evidence this project is actually maintained over time. Everything below
+# is derived output, safe to regenerate, no need to version it.
+data/daily_pnl.csv
+data/var_summary.csv
+data/backtest_layer_a_historical.csv
+data/backtest_layer_b_live.csv
+data/stress_test_results.csv
+
+# --- Secrets (if you add FRED API key etc. later) ---
+.env
+*.key
