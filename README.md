@@ -74,6 +74,27 @@ LONG_USD  = profit when USDXXX RISES (local currency weakens)
 SHORT_USD = profit when USDXXX FALLS (local currency strengthens)
 ```
 
+### Step 2A: Update the macro scorecard
+
+Open `macro/scorecard_inputs.csv` and score each pair from -2 to +2 across
+five factors: rate differential momentum, risk sentiment, commodity,
+event risk, and technical positioning.
+
+Positive scores mean a USD-strength / local-currency-weakness lean for the
+USDXXX pair. Negative scores mean a local-currency-strength / USD-weakness
+lean. Keep `confidence` and `notes` as judgement fields; they make the
+decision process explainable without pretending the score is a black-box
+signal.
+
+Then run:
+
+```bash
+python macro/scorecard_calc.py
+```
+
+This saves `data/macro_scorecard.csv`. Treat the output as a directional
+lean, not a buy/sell signal. If you override it, write why in the journal.
+
 ### Step 3: Calculate P&L
 
 ```bash
@@ -132,11 +153,13 @@ an interview conversation.
 ```
 1. python data_ingestion/fetch_fx.py     (refresh data)
 2. Update positions/positions.csv         (new view, new/adjusted position)
-3. python pnl/pnl_calc.py
-4. python risk/var_calc.py
-5. python risk/backtest_var.py
-6. python risk/stress_test.py             (re-run occasionally, not necessarily weekly)
-7. Write journal/2026-WXX.md
+3. Update macro/scorecard_inputs.csv      (repeatable pre-trade decision tool)
+4. python macro/scorecard_calc.py
+5. python pnl/pnl_calc.py
+6. python risk/var_calc.py
+7. python risk/backtest_var.py
+8. python risk/stress_test.py             (re-run occasionally, not necessarily weekly)
+9. Write journal/2026-WXX.md
 ```
 
 ## Extend later (not needed for MVP)
