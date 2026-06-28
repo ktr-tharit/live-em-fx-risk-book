@@ -1,30 +1,3 @@
-"""
-backtest_var.py
-----------------
-Implements Basel-style VaR backtesting in two layers:
-
-LAYER A — Historical constant-notional portfolio backtest:
-    Uses a fixed hypothetical portfolio over the full FX history.
-    Rolls VaR forward day by day using only prior data, then compares
-    next-day hypothetical portfolio P&L against the VaR estimate.
-
-LAYER B — Live portfolio backtest:
-    Uses actual positions from positions.csv. For each date with active
-    positions, it calculates portfolio VaR using only returns before that date,
-    compares the actual portfolio P&L on that date, and flags exceptions.
-
-Exception rule:
-    exception = 1 if actual_pnl_usd < -var_usd
-
-Traffic light zones for 99% VaR over 250 observations:
-    0-4   exceptions -> GREEN
-    5-9   exceptions -> YELLOW
-    10+   exceptions -> RED
-
-Usage:
-    python risk/backtest_var.py
-"""
-
 import sys
 from pathlib import Path
 

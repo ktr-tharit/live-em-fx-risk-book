@@ -1,11 +1,3 @@
-"""
-config.py
----------
-Single source of truth for project-wide settings. Every other module imports
-from here instead of hardcoding values, so changing a pair list or VaR
-confidence level happens in one place.
-"""
-
 from pathlib import Path
 
 # -----------------------------
@@ -25,15 +17,12 @@ SCORECARD_INPUTS_FILE = MACRO_DIR / "scorecard_inputs.csv"
 # -----------------------------
 # FX universe
 # -----------------------------
-# Yahoo Finance ticker suffix convention: "<CCY>=X" means USD -> CCY
 FX_PAIRS = {
     "USDTHB": "THB=X",
     "USDINR": "INR=X",
     "USDBRL": "BRL=X",
     "USDZAR": "ZAR=X",
     "USDMXN": "MXN=X",
-    "USDIDR": "IDR=X",
-    "USDTRY": "TRY=X",
 }
 
 # -----------------------------

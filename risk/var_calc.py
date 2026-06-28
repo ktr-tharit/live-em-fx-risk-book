@@ -1,28 +1,3 @@
-"""
-var_calc.py
------------
-Calculates portfolio VaR using two methods:
-
-1. Historical simulation VaR:
-   Apply each of the last N days' actual % moves to the CURRENT position book,
-   build a hypothetical P&L distribution, and take the loss at the chosen
-   percentile.
-
-2. Parametric VaR (variance-covariance method):
-   Estimate the covariance matrix of pair returns over the lookback window,
-   compute portfolio volatility given current position weights, and scale by
-   the z-score for the chosen confidence level.
-
-Both methods answer the same question - "how much could this book lose on a
-bad day?" - but make different assumptions. Historical VaR makes no
-distributional assumption but is limited to shocks that actually happened in
-the lookback window. Parametric VaR assumes returns are normally distributed,
-which understates tail risk for FX (fat tails), but is fast and smooth.
-
-Usage:
-    python risk/var_calc.py
-"""
-
 import sys
 from pathlib import Path
 

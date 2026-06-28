@@ -1,20 +1,6 @@
-"""
-fetch_fx.py
------------
-Pulls daily FX spot rates for a basket of EM currencies vs USD using yfinance,
-and appends them to a local CSV so we build a real running history over time.
-
-Run this weekly (or daily). The script is append-only and idempotent:
-re-running it just adds new dates without duplicating or losing history.
-
-Usage:
-    python data_ingestion/fetch_fx.py
-"""
-
 import sys
 from pathlib import Path
 
-# allow running this script directly (so it can find config.py at project root)
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import yfinance as yf
@@ -34,8 +20,6 @@ def fetch_pair(ticker: str) -> pd.DataFrame:
         print(f"  [WARNING] No data returned for {ticker}")
         return pd.DataFrame()
 
-    # Newer yfinance versions can return MultiIndex columns (e.g. ('Close', 'THB=X'))
-    # even for a single ticker. Flatten to the top level so "Close" is a plain string.
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
