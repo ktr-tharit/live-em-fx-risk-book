@@ -1,18 +1,3 @@
-"""
-stress_test.py
----------------
-Applies historical crisis-period returns (defined in data/stress_scenarios.csv)
-to the CURRENT position book, to estimate hypothetical P&L if a similar shock
-happened again today.
-
-Method: for each scenario, take the cumulative % return of each pair over
-the scenario's date window (using whatever overlap exists in our FX history),
-and apply that cumulative move to today's notional.
-
-Usage:
-    python risk/stress_test.py
-"""
-
 import sys
 from pathlib import Path
 

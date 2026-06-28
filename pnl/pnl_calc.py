@@ -1,25 +1,3 @@
-"""
-pnl_calc.py
------------
-Calculates daily P&L for the positions logged in positions.csv,
-using actual historical FX rate changes from fx_rates.csv.
-
-Direction convention:
-    LONG_USD  -> profit when USDXXX rises (local currency weakens vs USD)
-    SHORT_USD -> profit when USDXXX falls (local currency strengthens vs USD)
-
-P&L formula (USD terms, approximated using % change in the rate):
-    daily_pnl_usd = notional_usd * direction_sign * pct_change_in_rate
-
-This is an approximation (ignores convexity from converting local P&L back to
-USD at the new rate), which is fine for a risk-monitoring project at this
-scale. Note the approximation in any write-up so it's clear it's a deliberate
-simplification, not an oversight.
-
-Usage:
-    python pnl/pnl_calc.py
-"""
-
 import sys
 from pathlib import Path
 

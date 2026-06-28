@@ -1,17 +1,3 @@
-"""
-scorecard_calc.py
------------------
-Turns a manual macro scorecard into a transparent directional lean for each
-FX pair. This is a decision aid, not a trading signal.
-
-Scores are directional for USDXXX:
-    +2 = strong USD / local-currency weakness input
-    -2 = strong local-currency strength / USD weakness input
-
-Usage:
-    python macro/scorecard_calc.py
-"""
-
 import sys
 from pathlib import Path
 
@@ -70,7 +56,13 @@ def calc_weighted_score(row: pd.Series) -> float:
 
 
 def calc_scorecard() -> pd.DataFrame:
-    df = pd.read_csv(SCORECARD_INPUTS_FILE, parse_dates=["as_of_date"])
+    df = pd.read_csv(SCORECARD_INPUTS_FILE)
+    df["as_of_date"] = pd.to_datetime(
+        df["as_of_date"], errors="coerce", format="mixed"
+    ).dt.normalize()
+    if df["as_of_date"].isna().any():
+        bad = df[df["as_of_date"].isna()]
+        raise ValueError(f"Invalid as_of_date value(s):\n{bad}")
     validate_inputs(df)
 
     df["weighted_score"] = df.apply(calc_weighted_score, axis=1)
@@ -97,13 +89,13 @@ def calc_scorecard() -> pd.DataFrame:
 
 def main() -> None:
     result = calc_scorecard()
-    result.to_csv(OUTPUT_FILE, index=False)
+    result.to_csv(OUTPUT_FILE, index=False, date_format="%Y-%m-%d")
 
     latest_date = result["as_of_date"].max()
     latest = result[result["as_of_date"] == latest_date].copy()
 
     print(f"Saved macro scorecard to {OUTPUT_FILE}")
-    print(f"\nLatest scorecard ({latest_date.date()}):")
+    print(f"\nLatest scorecard ({latest_date.strftime('%Y-%m-%d')}):")
     print(
         latest[["pair", "weighted_score", "lean", "confidence"]]
         .sort_values("weighted_score", ascending=False)

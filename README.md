@@ -162,6 +162,30 @@ an interview conversation.
 9. Write journal/2026-WXX.md
 ```
 
+## Dashboard
+
+The dashboard is a thin Streamlit control layer over the same CSV files and
+Python scripts. It does not auto-trade from the macro scorecard; it keeps the
+human decision step explicit.
+
+```bash
+streamlit run dashboard/dashboard.py
+```
+
+Pages:
+
+- Overview: current book, notional, latest P&L, VaR, stress, backtest zone,
+  and latest macro lean
+- Macro Scorecard: view latest scores, append a new manual scorecard row,
+  and generate suggested decision/size
+- Position Book: view active/history, append a new position, or set an
+  `end_date` to close a position
+- P&L Monitor: daily and cumulative portfolio P&L plus P&L by pair
+- Risk Monitor: VaR, backtest exceptions, traffic-light zone, and stress table
+
+Use the sidebar `Run pipeline` button after changing scorecard inputs or
+positions to refresh the generated CSV outputs.
+
 ## Extend later (not needed for MVP)
 
 - `fetch_rates.py` — pull policy rate differentials (FRED) to add carry P&L
