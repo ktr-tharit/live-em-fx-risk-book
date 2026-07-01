@@ -25,7 +25,7 @@ def load_current_positions(as_of_date: pd.Timestamp | None = None) -> pd.DataFra
 
     df = df[
         (df["as_of_date"] <= as_of_date)
-        & (df["end_date"].isna() | (df["end_date"] >= as_of_date))
+        & (df["end_date"].isna() | (df["end_date"] > as_of_date))
     ].copy()
     df["direction_sign"] = df["direction"].map(DIRECTION_SIGN)
     df["signed_notional_usd"] = df["notional_usd"] * df["direction_sign"]

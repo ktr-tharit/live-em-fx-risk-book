@@ -36,7 +36,7 @@ def load_current_positions(as_of_date: pd.Timestamp | None = None) -> pd.DataFra
 
     df = df[
         (df["as_of_date"] <= as_of_date)
-        & (df["end_date"].isna() | (df["end_date"] >= as_of_date))
+        & (df["end_date"].isna() | (df["end_date"] > as_of_date))
     ].copy()
     df["direction_sign"] = df["direction"].map(DIRECTION_SIGN)
     df["signed_notional_usd"] = df["notional_usd"] * df["direction_sign"]
@@ -53,6 +53,8 @@ def historical_var(returns: pd.DataFrame, positions: pd.Series,
     """
     recent = returns.tail(lookback_days)
     common_pairs = [p for p in positions.index if p in recent.columns]
+    if not common_pairs:
+        return 0.0, pd.Series(dtype=float)
     recent = recent[common_pairs]
     weights = positions[common_pairs]
 
@@ -69,6 +71,8 @@ def parametric_var(returns: pd.DataFrame, positions: pd.Series,
     """
     recent = returns.tail(lookback_days)
     common_pairs = [p for p in positions.index if p in recent.columns]
+    if not common_pairs:
+        return 0.0
     recent = recent[common_pairs]
     weights = positions[common_pairs].values  # USD notional per pair
 

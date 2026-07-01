@@ -84,7 +84,7 @@ def active_positions(as_of: pd.Timestamp | None = None) -> pd.DataFrame:
     df["_row_id"] = df.index
     return df[
         (df["as_of_date"] <= as_of)
-        & (df["end_date"].isna() | (df["end_date"] >= as_of))
+        & (df["end_date"].isna() | (df["end_date"] > as_of))
     ]
 
 
@@ -261,7 +261,31 @@ def page_position_book() -> None:
     positions = load_positions()
 
     st.subheader("Active Positions")
-    st.dataframe(active_positions().drop(columns=["_row_id"], errors="ignore"), use_container_width=True)
+    active = active_positions()
+    if active.empty:
+        st.info("No active positions.")
+    else:
+        header = st.columns([1.1, 1, 1, 1, 1, 1.3, 2.2, 0.9])
+        for col, label in zip(
+            header,
+            ["Opened", "Pair", "Direction", "Notional", "Entry", "View", "Rationale", ""],
+        ):
+            col.caption(label)
+
+        for _, row in active.iterrows():
+            cols = st.columns([1.1, 1, 1, 1, 1, 1.3, 2.2, 0.9])
+            cols[0].write(row["as_of_date"].strftime("%Y-%m-%d"))
+            cols[1].write(row["pair"])
+            cols[2].write(row["direction"])
+            cols[3].write(money(row["notional_usd"]))
+            cols[4].write(f"{row['entry_rate']:.4f}")
+            cols[5].write(row["view_tag"])
+            cols[6].write(row["rationale"])
+            if cols[7].button("Close", key=f"close_{row['_row_id']}", type="secondary"):
+                positions.loc[int(row["_row_id"]), "end_date"] = pd.Timestamp.today().normalize()
+                save_positions(positions)
+                st.success(f"Closed {row['pair']} {row['direction']} as of today.")
+                st.rerun()
 
     st.subheader("Position History")
     st.dataframe(positions, use_container_width=True)
@@ -296,22 +320,6 @@ def page_position_book() -> None:
             updated = pd.concat([positions, pd.DataFrame([row])], ignore_index=True)
             save_positions(updated)
             st.success("Position appended. Run the pipeline to refresh P&L and risk outputs.")
-
-    st.subheader("Close Position")
-    active = active_positions()
-    if active.empty:
-        st.info("No active positions to close.")
-    else:
-        labels = {
-            row["_row_id"]: f"{row['_row_id']}: {row['as_of_date'].date()} {row['pair']} {row['direction']} {money(row['notional_usd'])}"
-            for _, row in active.iterrows()
-        }
-        row_id = st.selectbox("position", list(labels.keys()), format_func=lambda key: labels[key])
-        close_date = st.date_input("end_date", value=date.today())
-        if st.button("Set end_date"):
-            positions.loc[int(row_id), "end_date"] = pd.Timestamp(close_date)
-            save_positions(positions)
-            st.success("Position closed. Run the pipeline to refresh P&L and risk outputs.")
 
 
 def page_pnl_monitor() -> None:

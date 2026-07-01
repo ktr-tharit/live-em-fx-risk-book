@@ -23,14 +23,6 @@ OUTPUT_FILE_A = DATA_DIR / "backtest_layer_a_historical.csv"
 OUTPUT_FILE_B = DATA_DIR / "backtest_layer_b_live.csv"
 
 
-# Layer A: fixed hypothetical portfolio for methodology validation.
-# Keep this simple and explicit.
-LAYER_A_PORTFOLIO = {
-    "USDTHB": 1_000_000,   # LONG_USD
-    "USDZAR": -500_000,   # SHORT_USD
-}
-
-
 def classify_zone(num_exceptions: int) -> str:
     for zone, (low, high) in TRAFFIC_LIGHT_ZONES.items():
         if low <= num_exceptions <= high:
@@ -83,16 +75,26 @@ def historical_var_from_pnl(
 
 def run_layer_a(returns: pd.DataFrame) -> pd.DataFrame:
     """
-    Historical constant-notional portfolio backtest.
+    Historical constant-notional current-book backtest.
 
-    This validates the VaR methodology using a fixed portfolio over history.
-    It is available from day one because it does not rely on live project history.
+    This validates the VaR methodology by taking the current active book from
+    positions.csv and replaying that fixed book over historical returns. It is
+    available from day one because it does not rely on live project history.
     """
-    signed_positions = pd.Series(LAYER_A_PORTFOLIO, dtype=float)
+    positions = load_positions()
+    project_date = max(
+        pd.Timestamp.today().normalize(),
+        positions["as_of_date"].max().normalize(),
+        returns.index.max().normalize(),
+    )
+    signed_positions = current_active_positions(positions, project_date)
+
+    if signed_positions.empty:
+        raise ValueError(f"No active positions found in positions.csv as of {project_date.date()}.")
 
     common_pairs = [p for p in signed_positions.index if p in returns.columns]
     if not common_pairs:
-        raise ValueError("Layer A portfolio pairs are not found in FX returns data.")
+        raise ValueError("Layer A active position pairs are not found in FX returns data.")
 
     signed_positions = signed_positions[common_pairs]
     returns = returns[common_pairs].dropna(how="all")
@@ -176,6 +178,27 @@ def active_positions_on_date(
     active = positions[
         (positions["as_of_date"] <= date)
         & (positions["end_date"].isna() | (positions["end_date"] >= date))
+    ].copy()
+
+    if active.empty:
+        return pd.Series(dtype=float)
+
+    return active.groupby("pair")["signed_notional_usd"].sum()
+
+
+def current_active_positions(
+    positions: pd.DataFrame,
+    date: pd.Timestamp,
+) -> pd.Series:
+    """
+    Return current net signed USD notional by pair.
+
+    For the current book, an end_date equal to today means the position has
+    been closed and should no longer be counted as active.
+    """
+    active = positions[
+        (positions["as_of_date"] <= date)
+        & (positions["end_date"].isna() | (positions["end_date"] > date))
     ].copy()
 
     if active.empty:
@@ -269,7 +292,14 @@ def main() -> None:
         latest = layer_a.iloc[-1]
         total_exceptions = int(layer_a["exception"].sum())
 
-        print(f"Layer A portfolio: {LAYER_A_PORTFOLIO}")
+        positions = load_positions()
+        project_date = max(
+            pd.Timestamp.today().normalize(),
+            positions["as_of_date"].max().normalize(),
+            returns.index.max().normalize(),
+        )
+        active_book = current_active_positions(positions, project_date).to_dict()
+        print(f"Layer A current active book as of {project_date.date()}: {active_book}")
         print(
             f"Latest rolling exceptions ({BACKTEST_WINDOW_DAYS}d window): "
             f"{int(latest['rolling_exceptions'])} -> {latest['traffic_light_zone']}"

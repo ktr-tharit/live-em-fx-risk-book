@@ -123,7 +123,9 @@ python risk/backtest_var.py
 
 - **Layer A (historical)**: replays a constant hypothetical position against
   the full FX history to validate whether the VaR *methodology* is sound —
-  works from day one, doesn't need live history.
+  works from day one, doesn't need live history. It uses the current active
+  book from `positions/positions.csv` as a fixed portfolio and replays that
+  book over historical returns.
 - **Layer B (live)**: tracks actual exceptions on your real logged positions
   going forward. Will be thin at first — that's expected, the script says so
   explicitly rather than forcing a misleading classification.
