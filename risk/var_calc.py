@@ -85,6 +85,27 @@ def parametric_var(returns: pd.DataFrame, positions: pd.Series,
     return var_estimate
 
 
+def annualized_portfolio_volatility(hypothetical_pnl: pd.Series, gross_notional: float) -> float:
+    if hypothetical_pnl.empty or gross_notional == 0:
+        return 0.0
+    daily_return = hypothetical_pnl / gross_notional
+    return daily_return.std() * np.sqrt(252)
+
+
+def sum_individual_historical_var(
+    returns: pd.DataFrame,
+    positions: pd.Series,
+    lookback_days: int,
+    confidence: float,
+) -> float:
+    individual_vars = []
+    for pair, signed_notional in positions.items():
+        pair_position = pd.Series({pair: signed_notional})
+        pair_var, _ = historical_var(returns, pair_position, lookback_days, confidence)
+        individual_vars.append(pair_var)
+    return float(np.sum(individual_vars))
+
+
 def main():
     returns = load_returns_wide()
     positions = load_current_positions()
@@ -94,13 +115,28 @@ def main():
     print()
 
     summary_rows = []
+    gross_notional = positions.abs().sum()
     for confidence in VAR_CONFIDENCE_LEVELS:
-        hist_var, _ = historical_var(returns, positions, VAR_LOOKBACK_DAYS, confidence)
+        hist_var, hypothetical_pnl = historical_var(returns, positions, VAR_LOOKBACK_DAYS, confidence)
         param_var = parametric_var(returns, positions, VAR_LOOKBACK_DAYS, confidence)
+        sum_individual_var = sum_individual_historical_var(
+            returns,
+            positions,
+            VAR_LOOKBACK_DAYS,
+            confidence,
+        )
+        diversification_benefit = sum_individual_var - hist_var
+        diversification_benefit_pct = (
+            diversification_benefit / sum_individual_var if sum_individual_var else 0.0
+        )
+        volatility = annualized_portfolio_volatility(hypothetical_pnl, gross_notional)
 
         print(f"--- {int(confidence*100)}% confidence, {VAR_LOOKBACK_DAYS}-day lookback ---")
         print(f"Historical VaR : ${hist_var:,.0f}")
         print(f"Parametric VaR : ${param_var:,.0f}")
+        print(f"Sum individual VaR : ${sum_individual_var:,.0f}")
+        print(f"Diversification benefit : ${diversification_benefit:,.0f} ({diversification_benefit_pct:.1%})")
+        print(f"Portfolio volatility : {volatility:.1%}")
         print()
 
         summary_rows.append({
@@ -108,6 +144,10 @@ def main():
             "lookback_days": VAR_LOOKBACK_DAYS,
             "historical_var_usd": hist_var,
             "parametric_var_usd": param_var,
+            "portfolio_volatility_annualized": volatility,
+            "sum_individual_historical_var_usd": sum_individual_var,
+            "historical_diversification_benefit_usd": diversification_benefit,
+            "historical_diversification_benefit_pct": diversification_benefit_pct,
         })
 
     pd.DataFrame(summary_rows).to_csv(OUTPUT_FILE, index=False)

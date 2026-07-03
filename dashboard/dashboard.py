@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import numpy as np
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -52,6 +53,25 @@ def money(value: float | int | None) -> str:
     return f"${value:,.0f}"
 
 
+def signed_money(value: float | int | None) -> str:
+    if pd.isna(value):
+        return "n/a"
+    sign = "+" if value > 0 else ""
+    return f"{sign}${value:,.0f}"
+
+
+def pct(value: float | int | None, decimals: int = 1) -> str:
+    if pd.isna(value):
+        return "n/a"
+    return f"{value:.{decimals}%}"
+
+
+def ratio(value: float | int | None, suffix: str = "x") -> str:
+    if pd.isna(value):
+        return "n/a"
+    return f"{value:.2f}{suffix}"
+
+
 def read_csv(path: Path, parse_dates: list[str] | None = None) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
@@ -86,6 +106,100 @@ def active_positions(as_of: pd.Timestamp | None = None) -> pd.DataFrame:
         (df["as_of_date"] <= as_of)
         & (df["end_date"].isna() | (df["end_date"] > as_of))
     ]
+
+
+def portfolio_daily_pnl(pnl: pd.DataFrame) -> pd.Series:
+    if pnl.empty:
+        return pd.Series(dtype=float)
+    return pnl.groupby("date", as_index=True)["daily_pnl_usd"].sum().sort_index()
+
+
+def position_realized_pnl(position: pd.Series, pnl: pd.DataFrame) -> float:
+    if pnl.empty or pd.isna(position["end_date"]):
+        return np.nan
+
+    mask = (
+        (pnl["pair"] == position["pair"])
+        & (pnl["direction"] == position["direction"])
+        & (pnl["date"] >= position["as_of_date"])
+        & (pnl["date"] <= position["end_date"])
+    )
+    if "view_tag" in pnl.columns and pd.notna(position["view_tag"]):
+        mask &= pnl["view_tag"].fillna("") == str(position["view_tag"])
+    return pnl.loc[mask, "daily_pnl_usd"].sum()
+
+
+def closed_position_stats(positions: pd.DataFrame, pnl: pd.DataFrame) -> dict[str, float]:
+    if positions.empty:
+        return {}
+
+    closed = positions[pd.notna(positions["end_date"])].copy()
+    if closed.empty:
+        return {
+            "total_realized_pnl": 0.0,
+            "win_rate": np.nan,
+            "wins": 0,
+            "losses": 0,
+            "avg_win": np.nan,
+            "avg_loss": np.nan,
+            "win_loss_ratio": np.nan,
+        }
+
+    closed["realized_pnl_usd"] = closed.apply(position_realized_pnl, axis=1, pnl=pnl)
+    realized = closed["realized_pnl_usd"].dropna()
+    wins = realized[realized > 0]
+    losses = realized[realized < 0]
+    avg_win = wins.mean() if not wins.empty else np.nan
+    avg_loss = losses.mean() if not losses.empty else np.nan
+    win_loss_ratio = abs(avg_win / avg_loss) if pd.notna(avg_win) and pd.notna(avg_loss) and avg_loss else np.nan
+
+    return {
+        "total_realized_pnl": realized.sum(),
+        "win_rate": len(wins) / len(realized) if len(realized) else np.nan,
+        "wins": len(wins),
+        "losses": len(losses),
+        "avg_win": avg_win,
+        "avg_loss": avg_loss,
+        "win_loss_ratio": win_loss_ratio,
+    }
+
+
+def max_drawdown(cumulative: pd.Series) -> tuple[float, str]:
+    if cumulative.empty:
+        return np.nan, "n/a"
+    drawdown = cumulative - cumulative.cummax()
+    trough_date = drawdown.idxmin()
+    week = pd.Timestamp(trough_date).strftime("%Y-%m-%d")
+    return drawdown.min(), week
+
+
+def sharpe_ratio_annualized(daily_pnl: pd.Series) -> float:
+    if daily_pnl.empty or daily_pnl.std() == 0:
+        return np.nan
+    return daily_pnl.mean() / daily_pnl.std() * np.sqrt(252)
+
+
+def live_var_exception_stats(backtest: pd.DataFrame) -> tuple[int, int, str]:
+    if backtest.empty:
+        return 0, 0, "n/a"
+    weekly = (
+        backtest.assign(week=backtest["date"].dt.to_period("W"))
+        .groupby("week")
+        .agg(exception=("exception", "sum"), zone=("traffic_light_zone", "last"))
+    )
+    exceptions = int((weekly["exception"] > 0).sum())
+    weeks = int(len(weekly))
+    zone = str(backtest.iloc[-1].get("traffic_light_zone", "n/a"))
+    return exceptions, weeks, zone
+
+
+def largest_exposure_label(positions: pd.DataFrame, gross_notional: float) -> str:
+    if positions.empty or gross_notional == 0:
+        return "n/a"
+    by_pair = positions.groupby("pair")["notional_usd"].sum().sort_values(ascending=False)
+    pair = by_pair.index[0]
+    share = by_pair.iloc[0] / gross_notional
+    return f"{pair} ({share:.0%} of total notional)"
 
 
 def load_latest_macro() -> pd.DataFrame:
@@ -195,6 +309,106 @@ def page_overview() -> None:
     if not macro.empty:
         view = macro[["pair", "weighted_score", "lean", "confidence"]].copy()
         st.dataframe(view, use_container_width=True)
+
+
+def page_portfolio_metrics() -> None:
+    st.title("Portfolio Metrics")
+    st.caption("Snapshot, risk, and performance view for the live EM FX book.")
+
+    positions = load_positions()
+    active = active_positions()
+    pnl = read_csv(DATA_DIR / "daily_pnl.csv", parse_dates=["date"])
+    var = read_csv(DATA_DIR / "var_summary.csv")
+    backtest_live = read_csv(DATA_DIR / "backtest_layer_b_live.csv", parse_dates=["date"])
+
+    gross = active["notional_usd"].sum() if not active.empty else 0.0
+    direction_sign = active["direction"].map({"LONG_USD": 1, "SHORT_USD": -1, "FLAT": 0})
+    net = (active["notional_usd"] * direction_sign).sum() if not active.empty else 0.0
+    open_pairs = active["pair"].nunique() if not active.empty else 0
+    mtd_pnl = np.nan
+    if not pnl.empty:
+        latest_date = pnl["date"].max()
+        mtd_pnl = pnl[pnl["date"].dt.to_period("M") == latest_date.to_period("M")]["daily_pnl_usd"].sum()
+
+    daily = portfolio_daily_pnl(pnl)
+    cumulative = daily.cumsum()
+    performance = closed_position_stats(positions, pnl)
+    drawdown, drawdown_week = max_drawdown(cumulative)
+    sharpe = sharpe_ratio_annualized(daily)
+    exceptions, exception_weeks, exception_zone = live_var_exception_stats(backtest_live)
+
+    var_99 = pd.Series(dtype=object)
+    if not var.empty and 0.99 in set(var["confidence"]):
+        var_99 = var.loc[var["confidence"] == 0.99].iloc[0]
+
+    historical_var = var_99.get("historical_var_usd", np.nan)
+    parametric_var = var_99.get("parametric_var_usd", np.nan)
+    volatility = var_99.get("portfolio_volatility_annualized", np.nan)
+    sum_individual_var = var_99.get("sum_individual_historical_var_usd", np.nan)
+    diversification_benefit = var_99.get("historical_diversification_benefit_usd", np.nan)
+    diversification_pct = var_99.get("historical_diversification_benefit_pct", np.nan)
+
+    if pd.isna(volatility) and not daily.empty and gross:
+        volatility = (daily / gross).std() * np.sqrt(252)
+    if pd.isna(sum_individual_var):
+        sum_individual_var = np.nan
+    if pd.isna(diversification_benefit) and pd.notna(sum_individual_var) and pd.notna(historical_var):
+        diversification_benefit = sum_individual_var - historical_var
+    if pd.isna(diversification_pct) and pd.notna(diversification_benefit) and sum_individual_var:
+        diversification_pct = diversification_benefit / sum_individual_var
+
+    st.subheader("Section 1 - Snapshot")
+    snapshot_cols = st.columns(4)
+    snapshot_cols[0].metric("Total Portfolio Notional", money(gross))
+    snapshot_cols[1].metric("Net Exposure (USD direction)", signed_money(net))
+    snapshot_cols[2].metric("Number of Open Positions", f"{open_pairs} pairs")
+    snapshot_cols[3].metric("Unrealized P&L (MTD)", signed_money(mtd_pnl))
+
+    st.subheader("Section 2 - Risk")
+    risk_cols = st.columns(4)
+    risk_cols[0].metric("1-day VaR 99% - Historical", money(historical_var))
+    risk_cols[1].metric("1-day VaR 99% - Parametric", money(parametric_var))
+    risk_cols[2].metric("Portfolio Volatility", pct(volatility))
+    risk_cols[3].metric("Largest single-pair exposure", largest_exposure_label(active, gross))
+
+    div_cols = st.columns(3)
+    div_cols[0].metric("Sum of individual VaR", money(sum_individual_var))
+    div_cols[1].metric("Portfolio VaR", money(historical_var))
+    div_cols[2].metric(
+        "Diversification Benefit",
+        money(diversification_benefit),
+        pct(diversification_pct),
+    )
+
+    st.subheader("Section 3 - Performance")
+    track_record = "n/a"
+    if not daily.empty:
+        weeks = max(1, int(np.ceil((daily.index.max() - daily.index.min()).days / 7)))
+        track_record = f"{weeks} weeks"
+
+    wins = performance.get("wins", 0)
+    losses = performance.get("losses", 0)
+    perf_cols = st.columns(4)
+    perf_cols[0].metric("Track Record", track_record)
+    perf_cols[1].metric("Total Realized P&L", signed_money(performance.get("total_realized_pnl", np.nan)))
+    perf_cols[2].metric("Win Rate (closed positions)", pct(performance.get("win_rate", np.nan)), f"{wins} wins / {losses} losses")
+    perf_cols[3].metric("Win/Loss Ratio", ratio(performance.get("win_loss_ratio", np.nan)))
+
+    perf_cols = st.columns(4)
+    perf_cols[0].metric("Avg Win", signed_money(performance.get("avg_win", np.nan)))
+    perf_cols[1].metric("Avg Loss", signed_money(performance.get("avg_loss", np.nan)))
+    perf_cols[2].metric("Sharpe Ratio (annualized)", f"{sharpe:.2f}" if pd.notna(sharpe) else "n/a")
+    perf_cols[3].metric("Max Drawdown", signed_money(drawdown), f"week of {drawdown_week}")
+
+    st.metric("VaR Exceptions (live)", f"{exceptions} / {exception_weeks} weeks", f"within {exception_zone} zone")
+
+    if not active.empty:
+        st.subheader("Open Position Detail")
+        st.dataframe(active.drop(columns=["_row_id"], errors="ignore"), use_container_width=True)
+
+    if not cumulative.empty:
+        st.subheader("Cumulative P&L")
+        st.line_chart(cumulative)
 
 
 def page_macro_scorecard() -> None:
@@ -381,11 +595,13 @@ def main() -> None:
 
     page = st.sidebar.radio(
         "Page",
-        ["Overview", "Macro Scorecard", "Position Book", "P&L Monitor", "Risk Monitor"],
+        ["Overview", "Portfolio Metrics", "Macro Scorecard", "Position Book", "P&L Monitor", "Risk Monitor"],
     )
 
     if page == "Overview":
         page_overview()
+    elif page == "Portfolio Metrics":
+        page_portfolio_metrics()
     elif page == "Macro Scorecard":
         page_macro_scorecard()
     elif page == "Position Book":
