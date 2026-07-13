@@ -31,10 +31,10 @@ def classify_zone(num_exceptions: int) -> str:
 
 
 def load_returns_wide() -> pd.DataFrame:
-    """Load FX rates and convert to wide daily return table."""
+    """Load FX rates and convert to exact USD P&L return table."""
     df = pd.read_csv(FX_RATES_FILE, parse_dates=["date"])
     wide = df.pivot(index="date", columns="pair", values="rate").sort_index()
-    returns = wide.pct_change().dropna(how="all")
+    returns = (1 - wide.shift(1) / wide).dropna(how="all")
     return returns
 
 
@@ -176,7 +176,8 @@ def active_positions_on_date(
     Return net signed USD notional by pair for positions active on a date.
     """
     active = positions[
-        (positions["as_of_date"] <= date)
+        # Entry is at the as_of_date close; P&L starts on the next close.
+        (positions["as_of_date"] < date)
         & (positions["end_date"].isna() | (positions["end_date"] >= date))
     ].copy()
 

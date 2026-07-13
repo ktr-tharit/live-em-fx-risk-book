@@ -1,5 +1,6 @@
-as_of_date,end_date,pair,direction,notional_usd,entry_rate,view_tag,rationale,linked_scorecard_date
-2026-06-15,,USDTHB,LONG_USD,1000000.0,32.5,Fed_hawkish_BOT_dovish,Fed repricing hawkish after recent CPI print; BOT seen on hold which widens rate differential in USD favor,
-2026-06-15,2026-06-28,USDZAR,SHORT_USD,500000.0,18.5,commodity_support,Gold and platinum prices supportive of ZAR; risk-on tone in EM this week,
-2026-06-28,2026-06-28,USDMXN,LONG_USD,500000.0,17.3,commodity_support,-,2026-06-28
-2026-07-02,,USDTHB,LONG_USD,300000.0,33.28,,-,2026-07-02
+position_id,as_of_date,end_date,pair,direction,notional_usd,view_tag,rationale,linked_scorecard_date
+POS-0001,2026-06-15,2026-07-13,USDTHB,LONG_USD,1000000.0,Fed_hawkish_BOT_dovish,Fed repricing hawkish after recent CPI print; BOT seen on hold which widens rate differential in USD favor,
+POS-0002,2026-06-15,2026-06-28,USDZAR,SHORT_USD,500000.0,commodity_support,Gold and platinum prices supportive of ZAR; risk-on tone in EM this week,
+POS-0003,2026-06-28,2026-06-28,USDMXN,LONG_USD,500000.0,commodity_support,-,2026-06-28
+POS-0004,2026-07-02,2026-07-03,USDTHB,LONG_USD,300000.0,,-,2026-07-02
+POS-0005,2026-07-01,,USDMXN,LONG_USD,300000.0,,,2026-07-01

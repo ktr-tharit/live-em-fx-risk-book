@@ -1,11 +1,11 @@
 import sys
 from pathlib import Path
+from statistics import NormalDist
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
 
 from config import (
     FX_RATES_FILE,
@@ -20,10 +20,11 @@ OUTPUT_FILE = DATA_DIR / "var_summary.csv"
 
 
 def load_returns_wide() -> pd.DataFrame:
-    """Load FX rates and pivot to wide format of daily % returns, one column per pair."""
+    """Load exact USD P&L returns for USDXXX pairs, one column per pair."""
     df = pd.read_csv(FX_RATES_FILE, parse_dates=["date"])
     wide = df.pivot(index="date", columns="pair", values="rate").sort_index()
-    returns = wide.pct_change().dropna(how="all")
+    # USD P&L on a USD notional: (S_t - S_t-1) / S_t.
+    returns = (1 - wide.shift(1) / wide).dropna(how="all")
     return returns
 
 
@@ -80,7 +81,7 @@ def parametric_var(returns: pd.DataFrame, positions: pd.Series,
     portfolio_variance = weights @ cov_matrix.values @ weights.T
     portfolio_std_usd = np.sqrt(portfolio_variance)
 
-    z_score = norm.ppf(confidence)
+    z_score = NormalDist().inv_cdf(confidence)
     var_estimate = z_score * portfolio_std_usd
     return var_estimate
 

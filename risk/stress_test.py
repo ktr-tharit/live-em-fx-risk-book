@@ -40,7 +40,8 @@ def cumulative_return_in_window(rates: pd.DataFrame, pair: str,
     window = window[(window.index >= start_date) & (window.index <= end_date)]
     if len(window) < 2:
         return None
-    return (window.iloc[-1] / window.iloc[0]) - 1
+    # Exact USD P&L return for a USDXXX move, translated back to USD.
+    return 1 - window.iloc[0] / window.iloc[-1]
 
 
 def main():

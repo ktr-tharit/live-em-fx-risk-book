@@ -67,6 +67,10 @@ Open `positions/positions.csv` and add a row for each currency view you're
 taking this week. There are two example rows already in there — replace or
 add to them.
 
+Every order needs a unique `position_id`. There is no `entry_rate`: the
+system treats `as_of_date` as an entry at that day's official close, starts
+P&L at the next available close, and includes the move through `end_date`.
+
 Direction convention (write this down somewhere visible, it's easy to flip
 by accident):
 ```
@@ -101,9 +105,10 @@ lean, not a buy/sell signal. If you override it, write why in the journal.
 python pnl/pnl_calc.py
 ```
 
-Computes daily P&L for every position logged in `positions.csv`, from its
-`as_of_date` onward, using actual historical rate moves. Saves to
-`data/daily_pnl.csv`.
+Computes close-to-close daily P&L for every position after its `as_of_date`.
+For USDXXX, USD P&L return is `(spot_t - spot_t-1) / spot_t`. P&L, VaR,
+backtesting, and stress testing all use this same USD convention. Saves to
+`data/daily_pnl.csv` with P&L attributed by `position_id`.
 
 ### Step 4: Calculate VaR
 
@@ -176,13 +181,11 @@ streamlit run dashboard/dashboard.py
 
 Pages:
 
-- Overview: current book, notional, latest P&L, VaR, stress, backtest zone,
-  and latest macro lean
+- Overview: compact live exposure, realized/unrealized P&L, and cumulative P&L
 - Macro Scorecard: view latest scores, append a new manual scorecard row,
   and generate suggested decision/size
-- Position Book: view active/history, append a new position, or set an
-  `end_date` to close a position
-- P&L Monitor: daily and cumulative portfolio P&L plus P&L by pair
+- Order Book: open/close positions and audit P&L for each `position_id`
+- P&L Monitor: portfolio performance, position summaries, and daily ledger
 - Risk Monitor: VaR, backtest exceptions, traffic-light zone, and stress table
 
 Use the sidebar `Run pipeline` button after changing scorecard inputs or
