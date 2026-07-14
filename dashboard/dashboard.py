@@ -15,7 +15,8 @@ else:
 from dashboard.common import pipeline_controls
 from dashboard.views.book import page_order_book
 from dashboard.views.performance import page_overview, page_pnl_monitor
-from dashboard.views.risk_macro import page_macro_scorecard, page_risk_monitor
+from dashboard.views.risk_macro import page_risk_monitor
+from dashboard.views.trade_thesis import page_trade_thesis
 
 
 def main() -> None:
@@ -36,7 +37,7 @@ def main() -> None:
         "Overview": page_overview,
         "Order Book": page_order_book,
         "P&L Monitor": page_pnl_monitor,
-        "Macro Scorecard": page_macro_scorecard,
+        "Trade Thesis": page_trade_thesis,
         "Risk Monitor": page_risk_monitor,
     }
     pages[st.sidebar.radio("Page", list(pages))]()

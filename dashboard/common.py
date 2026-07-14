@@ -10,10 +10,10 @@ from config import DATA_DIR, POSITIONS_FILE, PROJECT_ROOT
 
 POSITION_COLUMNS = [
     "position_id", "as_of_date", "end_date", "pair", "direction",
-    "notional_usd", "view_tag", "rationale", "linked_scorecard_date",
+    "notional_usd", "view_tag", "rationale", "linked_thesis_id",
 ]
 PIPELINE_STEPS = [
-    ("Macro scorecard", "macro/scorecard_calc.py"),
+    ("Trade theses", "macro/trade_thesis.py"),
     ("P&L", "pnl/pnl_calc.py"),
     ("VaR", "risk/var_calc.py"),
     ("Backtest", "risk/backtest_var.py"),
@@ -41,7 +41,7 @@ def read_csv(path: Path, parse_dates=None) -> pd.DataFrame:
 def load_positions() -> pd.DataFrame:
     df = read_csv(
         POSITIONS_FILE,
-        parse_dates=["as_of_date", "end_date", "linked_scorecard_date"],
+        parse_dates=["as_of_date", "end_date"],
     )
     for column in POSITION_COLUMNS:
         if column not in df:
@@ -51,8 +51,9 @@ def load_positions() -> pd.DataFrame:
 
 def save_positions(df: pd.DataFrame) -> None:
     output = df[POSITION_COLUMNS].copy()
-    for column in ["as_of_date", "end_date", "linked_scorecard_date"]:
+    for column in ["as_of_date", "end_date"]:
         output[column] = pd.to_datetime(output[column], errors="coerce").dt.strftime("%Y-%m-%d").fillna("")
+    output["linked_thesis_id"] = output["linked_thesis_id"].fillna("")
     output.to_csv(POSITIONS_FILE, index=False)
 
 

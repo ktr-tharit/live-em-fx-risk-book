@@ -78,26 +78,21 @@ LONG_USD  = profit when USDXXX RISES (local currency weakens)
 SHORT_USD = profit when USDXXX FALLS (local currency strengthens)
 ```
 
-### Step 2A: Update the macro scorecard
+### Step 2A: Write the trade thesis
 
-Open `macro/scorecard_inputs.csv` and score each pair from -2 to +2 across
-five factors: rate differential momentum, risk sentiment, commodity,
-event risk, and technical positioning.
-
-Positive scores mean a USD-strength / local-currency-weakness lean for the
-USDXXX pair. Negative scores mean a local-currency-strength / USD-weakness
-lean. Keep `confidence` and `notes` as judgement fields; they make the
-decision process explainable without pretending the score is a black-box
-signal.
+Use the Trade Thesis dashboard page or edit `macro/trade_theses.csv`. Each
+thesis records the pair, direction, current macro drivers, a concise thesis,
+and conviction. This keeps the investment judgement explicit instead of
+turning qualitative inputs into a false-precision score.
 
 Then run:
 
 ```bash
-python macro/scorecard_calc.py
+python macro/trade_thesis.py
 ```
 
-This saves `data/macro_scorecard.csv`. Treat the output as a directional
-lean, not a buy/sell signal. If you override it, write why in the journal.
+This validates the thesis schema. Link a position to the exact thesis with
+`linked_thesis_id`; multiple theses can exist for the same pair and date.
 
 ### Step 3: Calculate P&L
 
@@ -160,8 +155,8 @@ an interview conversation.
 ```
 1. python data_ingestion/fetch_fx.py     (refresh data)
 2. Update positions/positions.csv         (new view, new/adjusted position)
-3. Update macro/scorecard_inputs.csv      (repeatable pre-trade decision tool)
-4. python macro/scorecard_calc.py
+3. Update macro/trade_theses.csv          (write the pre-trade thesis)
+4. python macro/trade_thesis.py
 5. python pnl/pnl_calc.py
 6. python risk/var_calc.py
 7. python risk/backtest_var.py
@@ -172,7 +167,7 @@ an interview conversation.
 ## Dashboard
 
 The dashboard is a thin Streamlit control layer over the same CSV files and
-Python scripts. It does not auto-trade from the macro scorecard; it keeps the
+Python scripts. It does not auto-trade from the trade thesis; it keeps the
 human decision step explicit.
 
 ```bash
@@ -182,13 +177,12 @@ streamlit run dashboard/dashboard.py
 Pages:
 
 - Overview: compact live exposure, realized/unrealized P&L, and cumulative P&L
-- Macro Scorecard: view latest scores, append a new manual scorecard row,
-  and generate suggested decision/size
+- Trade Thesis: capture direction, macro drivers, thesis, and conviction
 - Order Book: open/close positions and audit P&L for each `position_id`
 - P&L Monitor: portfolio performance, position summaries, and daily ledger
 - Risk Monitor: VaR, backtest exceptions, traffic-light zone, and stress table
 
-Use the sidebar `Run pipeline` button after changing scorecard inputs or
+Use the sidebar `Run pipeline` button after changing trade theses or
 positions to refresh the generated CSV outputs.
 
 ## Extend later (not needed for MVP)

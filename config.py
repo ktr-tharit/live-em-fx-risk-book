@@ -12,7 +12,7 @@ MACRO_DIR = PROJECT_ROOT / "macro"
 FX_RATES_FILE = DATA_DIR / "fx_rates.csv"
 STRESS_SCENARIOS_FILE = DATA_DIR / "stress_scenarios.csv"
 POSITIONS_FILE = POSITIONS_DIR / "positions.csv"
-SCORECARD_INPUTS_FILE = MACRO_DIR / "scorecard_inputs.csv"
+TRADE_THESES_FILE = MACRO_DIR / "trade_theses.csv"
 
 # -----------------------------
 # FX universe
@@ -45,60 +45,14 @@ TRAFFIC_LIGHT_ZONES = {
 DEFAULT_NOTIONAL_USD = 1_000_000
 
 # -----------------------------
-# Macro scorecard settings
+# Trade thesis settings
 # -----------------------------
-# Scores are directional for USDXXX:
-#   +2 = strong USD / local-currency weakness lean
-#   -2 = strong local-currency strength / USD weakness lean
-SCORECARD_FACTORS = [
-    "rate_differential",
-    "risk_sentiment",
-    "commodity",
-    "event_risk",
-    "technical",
+TRADE_THESIS_DRIVERS = [
+    "Fed rate path",
+    "EM carry demand",
+    "Risk-off / DXY",
+    "Commodity prices",
+    "Local CB policy",
+    "Political / event risk",
+    "China / global growth",
 ]
-
-SCORECARD_WEIGHTS = {
-    "default": {
-        "rate_differential": 0.35,
-        "risk_sentiment": 0.25,
-        "commodity": 0.15,
-        "event_risk": 0.15,
-        "technical": 0.10,
-    },
-    "USDTHB": {
-        "rate_differential": 0.40,
-        "risk_sentiment": 0.25,
-        "commodity": 0.00,
-        "event_risk": 0.20,
-        "technical": 0.15,
-    },
-    "USDINR": {
-        "rate_differential": 0.40,
-        "risk_sentiment": 0.25,
-        "commodity": 0.00,
-        "event_risk": 0.20,
-        "technical": 0.15,
-    },
-    "USDZAR": {
-        "rate_differential": 0.25,
-        "risk_sentiment": 0.20,
-        "commodity": 0.30,
-        "event_risk": 0.15,
-        "technical": 0.10,
-    },
-    "USDBRL": {
-        "rate_differential": 0.25,
-        "risk_sentiment": 0.20,
-        "commodity": 0.30,
-        "event_risk": 0.15,
-        "technical": 0.10,
-    },
-    "USDMXN": {
-        "rate_differential": 0.30,
-        "risk_sentiment": 0.25,
-        "commodity": 0.20,
-        "event_risk": 0.15,
-        "technical": 0.10,
-    },
-}

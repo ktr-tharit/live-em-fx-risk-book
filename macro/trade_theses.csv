@@ -1,0 +1,7 @@
+thesis_id,as_of_date,pair,direction,drivers,custom_driver,thesis,conviction
+THESIS-0001,2026-06-28,USDTHB,LONG_USD,Fed rate path;Local CB policy;Political / event risk,,Initial placeholder; replace with this week's macro view before using for decisions,low
+THESIS-0002,2026-06-28,USDZAR,LONG_USD,EM carry demand;Commodity prices;Risk-off / DXY,,Initial placeholder; replace with this week's macro view before using for decisions,low
+THESIS-0003,2026-06-28,USDMXN,LONG_USD,Fed rate path;Commodity prices;Risk-off / DXY,,just test,low
+THESIS-0004,2026-06-16,USDINR,LONG_USD,Commodity prices,,bull trend and pull back,medium
+THESIS-0005,2026-06-16,USDBRL,LONG_USD,Risk-off / DXY,,bull trend and pull back,medium
+THESIS-0006,2026-07-15,USDZAR,SHORT_USD,Political / event risk;Local CB policy,,for diversify,low

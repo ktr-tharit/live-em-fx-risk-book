@@ -1,4 +1,0 @@
-as_of_date,pair,rate_differential,risk_sentiment,commodity,event_risk,technical,weighted_score,lean,confidence,notes,weights_used
-2026-06-28,USDMXN,2,-1,1,0,2,0.75,Mild USD lean,low,just test,rate_differential=0.30; risk_sentiment=0.25; commodity=0.20; event_risk=0.15; technical=0.10
-2026-06-28,USDTHB,2,0,0,-1,1,0.75,Mild USD lean,low,Initial placeholder; replace with this week's macro view before using for decisions,rate_differential=0.40; risk_sentiment=0.25; commodity=0.00; event_risk=0.20; technical=0.15
-2026-06-28,USDZAR,-1,1,1,0,2,0.45,Mild USD lean,low,Initial placeholder; replace with this week's macro view before using for decisions,rate_differential=0.25; risk_sentiment=0.20; commodity=0.30; event_risk=0.15; technical=0.10

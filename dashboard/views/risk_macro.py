@@ -1,45 +1,10 @@
-from datetime import date
-
 import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
 
-from config import DATA_DIR, FX_PAIRS, SCORECARD_FACTORS, SCORECARD_INPUTS_FILE
-from dashboard.common import active_positions, money, percent, read_csv, run_script
-
-
-def page_macro_scorecard() -> None:
-    st.title("Macro Scorecard")
-    output = read_csv(DATA_DIR / "macro_scorecard.csv", parse_dates=["as_of_date"])
-    if output.empty:
-        st.info("No macro output yet.")
-    else:
-        latest = output.loc[output["as_of_date"] == output["as_of_date"].max()]
-        st.dataframe(latest, width="stretch", hide_index=True)
-
-    with st.expander("Add scorecard row", expanded=output.empty):
-        with st.form("scorecard_form", clear_on_submit=True):
-            cols = st.columns(3)
-            as_of = cols[0].date_input("Date", value=date.today())
-            pair = cols[1].selectbox("Pair", list(FX_PAIRS))
-            confidence = cols[2].selectbox("Confidence", ["low", "medium", "high"])
-            score_cols = st.columns(len(SCORECARD_FACTORS))
-            scores = {
-                factor: col.number_input(factor, -2, 2, 0, 1)
-                for col, factor in zip(score_cols, SCORECARD_FACTORS)
-            }
-            notes = st.text_area("Notes")
-            if st.form_submit_button("Save and calculate", type="primary"):
-                inputs = read_csv(SCORECARD_INPUTS_FILE, parse_dates=["as_of_date"])
-                row = {"as_of_date": as_of, "pair": pair, **scores, "confidence": confidence, "notes": notes}
-                inputs = pd.concat([inputs, pd.DataFrame([row])], ignore_index=True)
-                inputs["as_of_date"] = pd.to_datetime(inputs["as_of_date"]).dt.strftime("%Y-%m-%d")
-                inputs.to_csv(SCORECARD_INPUTS_FILE, index=False)
-                ok, log = run_script("macro/scorecard_calc.py")
-                (st.success if ok else st.error)("Scorecard updated." if ok else "Scorecard calculation failed.")
-                if not ok:
-                    st.code(log)
+from config import DATA_DIR
+from dashboard.common import active_positions, money, percent, read_csv
 
 
 def _var_card(row: pd.Series) -> None:
